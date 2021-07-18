@@ -1,0 +1,10 @@
+{
+    "name": "coderiftel.completer.runtime",
+    "references": [
+        "coderiftel.option.runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "autoReferenced": true,
+    "noEngineReferences": true
+}

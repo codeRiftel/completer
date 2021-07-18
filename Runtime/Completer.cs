@@ -238,7 +238,7 @@ namespace completer {
 
                         var paramName = line.Substring(lexRes.start, lexRes.length);
 
-                        if (paramName.StartsWith('"')) {
+                        if (paramName.StartsWith("\"")) {
                             return Result<BoiledCommand, ParseErr>.Err(
                                 ParseErr.ParamNameCannotBeQuoted
                             );
@@ -267,7 +267,7 @@ namespace completer {
                         pos = lexRes.start + lexRes.length;
                     } else if (lexRes.token == Token.Identifier) {
                         var flagName = line.Substring(lexRes.start, lexRes.length);
-                        if (flagName.StartsWith('"')) {
+                        if (flagName.StartsWith("\"")) {
                             return Result<BoiledCommand, ParseErr>.Err(
                                 ParseErr.FlagCannotBeQuoted
                             );
@@ -332,7 +332,7 @@ namespace completer {
         }
 
         private static string NormalizeIdentifier(string identifier) {
-            if (identifier.StartsWith('"')) {
+            if (identifier.StartsWith("\"")) {
                 identifier = identifier.Substring(1, identifier.Length - 2);
                 identifier = identifier.Replace("\\\"", "\"");
             }

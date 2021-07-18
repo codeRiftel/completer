@@ -1,0 +1,12 @@
+{
+    "name": "xyz.coderiftel.completer",
+    "version": "1.0.0",
+    "description": "Completer handles command line parsing and gives you completion options.",
+    "displayName": "completer",
+    "author": {"name": "coderiftel"},
+    "hideInEditor": false,
+    "keywords": ["cli", "completion", "ongui"],
+    "dependencies": {
+        "xyz.coderiftel.option": "1.0.0"
+    }
+}
