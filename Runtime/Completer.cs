@@ -4,14 +4,12 @@ using System.Collections.Generic;
 using option;
 
 namespace completer {
-    public class CommandsInfo {
-        public List<string> commands;
+    public class CommandInfo {
         public List<string> flags;
         public List<string> orderedParams;
         public Dictionary<string, List<string>> namedParameters;
 
-        public CommandsInfo() {
-            commands = new List<string>();
+        public CommandInfo() {
             flags = new List<string>();
             orderedParams = new List<string>();
             namedParameters = new Dictionary<string, List<string>>();
@@ -92,7 +90,10 @@ namespace completer {
     }
 
     public static class Completer {
-        public static List<string> GetCompletions(CommandsInfo info, string line) {
+        public static List<string> GetCompletions(
+            Dictionary<string, CommandInfo> commandsInfo,
+            string line
+        ) {
             var completions = new List<string>();
 
             var pos = 0;
@@ -100,12 +101,35 @@ namespace completer {
 
             var lexResults = new List<LexRes>();
 
+            var first = true;
+            var commandName = "";
             while (lexRes.token != Token.EOF) {
                 lexRes = Lex(line, pos);
+                if (first) {
+                    first = false;
+                    if (lexRes.token == Token.Identifier) {
+                        commandName = line.Substring(lexRes.start, lexRes.length);
+                    } else {
+                        return new List<string>(commandsInfo.Keys);
+                    }
+                }
 
                 lexResults.Add(lexRes);
 
                 pos = lexRes.start + lexRes.length;
+            }
+
+            CommandInfo info = null;
+            if (!commandsInfo.ContainsKey(commandName)) {
+                foreach (var possibleCmd in commandsInfo.Keys) {
+                    if (possibleCmd.StartsWith(commandName)) {
+                        completions.Add(possibleCmd);
+                    }
+                }
+
+                return completions;
+            } else {
+                info = commandsInfo[commandName];
             }
 
             if (lexResults.Count <= 1) {
@@ -138,13 +162,7 @@ namespace completer {
                 prevPrevToken = targetLexRes.token;
             }
 
-            if (token == Token.Identifier && lexResults.Count == 2) {
-                foreach (var possibleCommand in info.commands) {
-                    if (possibleCommand.StartsWith(part) && part != possibleCommand) {
-                        completions.Add(possibleCommand);
-                    }
-                }
-            } else if (token == Token.Identifier) {
+            if (token == Token.Identifier) {
                 if (prevToken == Token.EqualSign) {
                     if (prevPrevToken == Token.Identifier) {
                         if (info.namedParameters.ContainsKey(prevPrevPart)) {
