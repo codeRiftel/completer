@@ -41,6 +41,15 @@ namespace completer {
         }
     }
 
+    public struct CompletionRes {
+        public List<string> completions;
+        public int commonLength;
+
+        public static CompletionRes Mk(List<string> completions, int commonLength) {
+            return new CompletionRes { completions = completions, commonLength = commonLength };
+        }
+    }
+
     public enum ParseErr {
         None,
         EmptyCommand,
@@ -90,7 +99,7 @@ namespace completer {
     }
 
     public static class Completer {
-        public static List<string> GetCompletions(
+        public static CompletionRes GetCompletions(
             Dictionary<string, CommandInfo> commandsInfo,
             string line
         ) {
@@ -110,7 +119,7 @@ namespace completer {
                     if (lexRes.token == Token.Identifier) {
                         commandName = line.Substring(lexRes.start, lexRes.length);
                     } else {
-                        return new List<string>(commandsInfo.Keys);
+                        return CompletionRes.Mk(new List<string>(commandsInfo.Keys), 0);
                     }
                 }
 
@@ -127,13 +136,13 @@ namespace completer {
                     }
                 }
 
-                return completions;
+                return CompletionRes.Mk(completions, commandName.Length);
             } else {
                 info = commandsInfo[commandName];
             }
 
             if (lexResults.Count <= 1) {
-                return completions;
+                return CompletionRes.Mk(completions, 0);
             }
 
             var part = "";
@@ -162,6 +171,7 @@ namespace completer {
                 prevPrevToken = targetLexRes.token;
             }
 
+            int commonLength = 0;
             if (token == Token.Identifier) {
                 if (prevToken == Token.EqualSign) {
                     if (prevPrevToken == Token.Identifier) {
@@ -172,6 +182,7 @@ namespace completer {
                                     completions.Add(possible);
                                 }
                             }
+                            commonLength = part.Length;
                         }
                     }
                 } else if (prevToken == Token.Hyphen) {
@@ -181,6 +192,7 @@ namespace completer {
                                 completions.Add(flag);
                             }
                         }
+                        commonLength = part.Length;
                     } else {
                         foreach (var named in info.namedParameters) {
                             var name = named.Key;
@@ -188,6 +200,7 @@ namespace completer {
                                 completions.Add(name);
                             }
                         }
+                        commonLength = part.Length;
                     }
                 } else {
                     foreach (var ordered in info.orderedParams) {
@@ -195,6 +208,7 @@ namespace completer {
                             completions.Add(ordered);
                         }
                     }
+                    commonLength = part.Length;
                 }
             } else if (token == Token.EqualSign) {
                 if (prevToken == Token.Identifier) {
@@ -215,7 +229,7 @@ namespace completer {
             }
 
 
-            return completions;
+            return CompletionRes.Mk(completions, commonLength);
         }
 
         public static Result<BoiledCommand, ParseErr> ParseCommand(string line) {
