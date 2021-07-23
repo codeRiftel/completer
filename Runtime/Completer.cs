@@ -130,12 +130,13 @@ namespace completer {
 
             CommandInfo info = null;
             if (!commandsInfo.ContainsKey(commandName)) {
-                foreach (var possibleCmd in commandsInfo.Keys) {
-                    if (possibleCmd.StartsWith(commandName)) {
-                        completions.Add(possibleCmd);
+                if (line.Length == 0) {
+                    foreach (var possibleCmd in commandsInfo.Keys) {
+                        if (possibleCmd.StartsWith(commandName)) {
+                            completions.Add(possibleCmd);
+                        }
                     }
                 }
-
                 return CompletionRes.Mk(completions, commandName.Length);
             } else {
                 info = commandsInfo[commandName];
