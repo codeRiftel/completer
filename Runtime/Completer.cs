@@ -130,7 +130,8 @@ namespace completer {
 
             CommandInfo info = null;
             if (!commandsInfo.ContainsKey(commandName)) {
-                if (line.Length == 0) {
+                Console.WriteLine(lexResults.Count);
+                if (lexResults.Count == 2) {
                     foreach (var possibleCmd in commandsInfo.Keys) {
                         if (possibleCmd.StartsWith(commandName)) {
                             completions.Add(possibleCmd);
