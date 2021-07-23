@@ -104,6 +104,9 @@ namespace completer {
             string line
         ) {
             var completions = new List<string>();
+            if (line.EndsWith(" ")) {
+                return CompletionRes.Mk(completions, 0);
+            }
 
             var pos = 0;
             LexRes lexRes = new LexRes();
@@ -130,7 +133,6 @@ namespace completer {
 
             CommandInfo info = null;
             if (!commandsInfo.ContainsKey(commandName)) {
-                Console.WriteLine(lexResults.Count);
                 if (lexResults.Count == 2) {
                     foreach (var possibleCmd in commandsInfo.Keys) {
                         if (possibleCmd.StartsWith(commandName)) {
