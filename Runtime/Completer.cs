@@ -436,16 +436,6 @@ namespace completer {
             }
 
             var pos = start;
-            // Console.WriteLine(data.Substring(start));
-            /*
-            while (IsWhiteSpace(data[pos])) {
-                pos++;
-
-                if (pos >= data.Length) {
-                    return LexRes.EOF();
-                }
-            }
-            */
 
             switch (data[pos]) {
                 case ' ':
