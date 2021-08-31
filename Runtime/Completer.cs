@@ -8,24 +8,14 @@ namespace completer {
         public List<string> flags;
         public List<string> orderedParams;
         public Dictionary<string, List<string>> namedParameters;
+        public List<string> variables;
 
         public CommandInfo() {
             flags = new List<string>();
             orderedParams = new List<string>();
             namedParameters = new Dictionary<string, List<string>>();
+            variables = new List<string>();
         }
-    }
-
-    public enum PartType {
-        Identifier,
-        Dash,
-        DoubleDash,
-        EqualSign
-    }
-
-    public struct CommandPart {
-        public PartType type;
-        public string value;
     }
 
     public class BoiledCommand {
@@ -69,6 +59,8 @@ namespace completer {
         Identifier,
         Hyphen,
         EqualSign,
+        DollarSign,
+        Space,
         EOF
     }
 
@@ -91,6 +83,14 @@ namespace completer {
 
         public static LexRes Equals(int start) {
             return new LexRes { token = Token.EqualSign, start = start, length = 1 };
+        }
+
+        public static LexRes DollarSign(int start) {
+            return new LexRes { token = Token.DollarSign, start = start, length = 1 };
+        }
+
+        public static LexRes Space(int start) {
+            return new LexRes { token = Token.Space, start = start, length = 1 };
         }
 
         public static LexRes EOF() {
@@ -116,7 +116,7 @@ namespace completer {
             var first = true;
             var commandName = "";
             while (lexRes.token != Token.EOF) {
-                lexRes = Lex(line, pos);
+                lexRes = SpaLex(line, pos);
                 if (first) {
                     first = false;
                     if (lexRes.token == Token.Identifier) {
@@ -206,6 +206,13 @@ namespace completer {
                         }
                         commonLength = part.Length;
                     }
+                } else if (prevToken == Token.DollarSign) {
+                    foreach (var variable in info.variables) {
+                        if (variable.StartsWith(part) && part != variable) {
+                            completions.Add(variable);
+                        }
+                    }
+                    commonLength = part.Length;
                 } else {
                     foreach (var ordered in info.orderedParams) {
                         if (ordered.StartsWith(part) && part != ordered) {
@@ -228,6 +235,8 @@ namespace completer {
                 } else {
                     completions.AddRange(info.flags);
                 }
+            } else if (token == Token.DollarSign) {
+                completions.AddRange(info.variables);
             } else {
                 completions.AddRange(info.orderedParams);
             }
@@ -244,7 +253,7 @@ namespace completer {
 
             bool first = true;
             while (lexRes.token != Token.EOF) {
-                lexRes = Lex(line, pos);
+                lexRes = DolLex(line, pos);
 
                 if (first) {
                     first = false;
@@ -259,7 +268,7 @@ namespace completer {
 
                 if (lexRes.token == Token.Hyphen) {
                     pos = lexRes.start + lexRes.length;
-                    lexRes = Lex(line, pos);
+                    lexRes = DolLex(line, pos);
 
                     if (lexRes.token != Token.Hyphen && lexRes.token != Token.Identifier) {
                         return Result<BoiledCommand, ParseErr>.Err(ParseErr.WrongHyphenUse);
@@ -267,7 +276,7 @@ namespace completer {
 
                     if (lexRes.token == Token.Hyphen) {
                         pos = lexRes.start + lexRes.length;
-                        lexRes = Lex(line, pos);
+                        lexRes = DolLex(line, pos);
                         if (lexRes.token != Token.Identifier) {
                             return Result<BoiledCommand, ParseErr>.Err(ParseErr.ParamExpected);
                         }
@@ -281,7 +290,7 @@ namespace completer {
                         }
 
                         pos = lexRes.start + lexRes.length;
-                        lexRes = Lex(line, pos);
+                        lexRes = DolLex(line, pos);
                         if (lexRes.token != Token.EqualSign) {
                             return Result<BoiledCommand, ParseErr>.Err(
                                 ParseErr.ExpectedEqualSign
@@ -289,7 +298,7 @@ namespace completer {
                         }
 
                         pos = lexRes.start + lexRes.length;
-                        lexRes = Lex(line, pos);
+                        lexRes = DolLex(line, pos);
                         if (lexRes.token != Token.Identifier) {
                             return Result<BoiledCommand, ParseErr>.Err(
                                 ParseErr.ExpectedParameterValue
@@ -376,12 +385,59 @@ namespace completer {
             return identifier;
         }
 
+        private static LexRes DolLex(string data, int start) {
+            var pos = start;
+            var lexRes = SpaLex(data, pos);
+
+            start = lexRes.start;
+
+            if (lexRes.token == Token.DollarSign) {
+                var inc = true;
+                while (lexRes.token == Token.DollarSign || lexRes.token == Token.Identifier) {
+                    pos = lexRes.start + lexRes.length;
+
+                    lexRes = Lex(data, pos);
+                    if (lexRes.token == Token.Space) {
+                        inc = false;
+                        break;
+                    }
+                }
+
+                if (lexRes.token != Token.EOF && inc) {
+                    pos = lexRes.start + lexRes.length;
+                }
+
+                var length = pos - start;
+                return new LexRes {
+                    token = Token.Identifier,
+                    start = start,
+                    length = length
+                };
+            } else {
+                return lexRes;
+            }
+        }
+
+        private static LexRes SpaLex(string data, int start) {
+            var pos = start;
+            var lexRes = Lex(data, pos);
+
+            while (lexRes.token == Token.Space) {
+                pos = lexRes.start + lexRes.length;
+                lexRes = Lex(data, pos);
+            }
+
+            return lexRes;
+        }
+
         private static LexRes Lex(string data, int start) {
             if (start >= data.Length) {
                 return LexRes.EOF();
             }
 
             var pos = start;
+            // Console.WriteLine(data.Substring(start));
+            /*
             while (IsWhiteSpace(data[pos])) {
                 pos++;
 
@@ -389,8 +445,14 @@ namespace completer {
                     return LexRes.EOF();
                 }
             }
+            */
 
             switch (data[pos]) {
+                case ' ':
+                case '\t':
+                case '\r':
+                case '\n':
+                    return LexRes.Space(pos);
                 case '=':
                     return LexRes.Equals(pos);
                 case '"':
@@ -419,10 +481,12 @@ namespace completer {
                     return LexRes.Identifier(startStr, pos - startStr + 1);
                 case '-':
                     return LexRes.Hyphen(pos);
+                case '$':
+                    return LexRes.DollarSign(pos);
                 default:
                     var startIdent = pos;
 
-                    while (!IsSpecial(data[pos]) && !IsWhiteSpace(data[pos])) {
+                    while (!IsSpecial(data[pos])) {
                         pos++;
 
                         if (pos >= data.Length) {
@@ -435,7 +499,7 @@ namespace completer {
         }
 
         private static bool IsSpecial(char c) {
-            return c == '=' || c == '"' || c == '-';
+            return c == '=' || c == '"' || c == '-' || c == '$' || IsWhiteSpace(c);
         }
 
         private static bool IsWhiteSpace(char c) {
