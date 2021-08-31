@@ -1,6 +1,6 @@
 {
     "name": "xyz.coderiftel.completer",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "description": "Completer handles command line parsing and gives you completion options.",
     "displayName": "completer",
     "author": {"name": "coderiftel"},
